@@ -1,7 +1,7 @@
-provider "azurerm" {
-  version = ">=1.40.0"
-}
 
+provider azurerm {
+  features {}
+}
 resource "azurerm_resource_group" "resourcegroup" {
   name     = var.resourcename
   location = var.location
