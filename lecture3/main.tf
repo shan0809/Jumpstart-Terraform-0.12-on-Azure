@@ -1,5 +1,6 @@
 provider "azurerm" {
   version = ">=1.40.0"
+  features {}
 }
 
 resource "azurerm_resource_group" "resourcegroup" {
