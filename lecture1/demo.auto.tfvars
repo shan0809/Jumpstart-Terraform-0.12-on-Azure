@@ -1,3 +1,3 @@
 resourcename  = "AzureRMResource"
-location      = "orth Europe"
+location      = "North Europe"
 tags          = { enviornment = "demo", owner = "shan", purpose = "TFdemo" }

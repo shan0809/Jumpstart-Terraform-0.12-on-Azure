@@ -1,13 +1,15 @@
 variable "resourcename" {
   description = "this is a resourcegroup"
+ # default = "test"
   
   
 }
 variable "location" {
-  validation {
-    condition = can(regex("^North", var.location))
-    error_message = "The location should be in North of europe ."
-  }
+  #default =  "North Europe"
+  #validation {
+  #  condition = can(regex("^North", var.location))
+  #  error_message = "The location should be in North of europe ."
+  #}
 }
 variable "tags" {
   type = map
