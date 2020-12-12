@@ -3,25 +3,7 @@ provider "azurerm" {
   features {}
 }
 
-variable lecture2 {
-    type = map
-    default = {
-        dev = {
-            resourcename = "azurermresource",
-            location = "North europe",
-            tags = {env = "dev",owner = "shan"},
-            storagename  = "azurermstorage",
-            containername = "tfcontainername"
-        },
-        prod = {
-            resourcename = "azurermreprod",
-            location = "North europe",
-            tags = {env = "prod",owner = "shan"},
-            storagename  = "azurermsprod",
-            containername = "tfcontainername"
-        }
-    }
-}
+
 
 variable "resourcename" {
     type = map
@@ -56,3 +38,22 @@ module "lecture2" {
     }
 }
 
+variable lecture2 {
+    type = map
+    default = {
+        dev = {
+            resourcename = "azurermresource",
+            location = "North europe",
+            tags = {env = "dev",owner = "shan"},
+            storagename  = "azurermstorage",
+            containername = "tfcontainername"
+        },
+        prod = {
+            resourcename = "azurermreprod",
+            location = "North europe",
+            tags = {env = "prod",owner = "shan"},
+            storagename  = "azurermsprod",
+            containername = "tfcontainername"
+        }
+    }
+}
