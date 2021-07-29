@@ -21,7 +21,7 @@ resource "azurerm_storage_account" "storage" {
 resource "azurerm_storage_container" "example" {
   count                 = 4
   name                  = "${var.containername}${count.index}"
-  resource_group_name   = azurerm_resource_group.resourcegroup.name
+//  resource_group_name   = azurerm_resource_group.resourcegroup.name
   storage_account_name  = azurerm_storage_account.storage.name
   container_access_type = "private"
 }
@@ -56,7 +56,7 @@ resource "azurerm_network_security_group" "nsgrule" {
   }
 }
 resource "azurerm_cosmosdb_account" "db" {
-  count               = var.enviornment == "prod" ? 2 : 1
+  count               = var.enviornment == "prod" ? 1 : 0
   name                = "tf-cosmos-db${count.index}"
   location            = "${azurerm_resource_group.resourcegroup.location}"
   resource_group_name = "${azurerm_resource_group.resourcegroup.name}"
@@ -78,8 +78,11 @@ resource "azurerm_cosmosdb_account" "db" {
   }
 }
 
+variable "diagnostic" {
+  default = ""
+}
 resource "azurerm_storage_account" "bootdiagnistic" {
-  name                     = "bootdiagshanterraform"
+  name                     = var.diagnostic
   resource_group_name      = azurerm_resource_group.resourcegroup.name
   location                 = azurerm_resource_group.resourcegroup.location
   account_tier             = trim(var.account_type, "_GRS")
@@ -126,9 +129,10 @@ resource "random_password" "password" {
 }
 
 
+
 resource "azurerm_virtual_machine" "vm-main" {
-  count                 = 3
-  name                  = "azurevm${count.index}"
+  count                 = 1
+  name                  = "azurevm${count.index}${var.env}"
   location              = azurerm_resource_group.resourcegroup.location
   resource_group_name   = azurerm_resource_group.resourcegroup.name
   network_interface_ids = [element(azurerm_network_interface.nic.*.id, count.index)]

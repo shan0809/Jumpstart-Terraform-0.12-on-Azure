@@ -1,7 +1,7 @@
 resourcename  = "AzureRMResource"
 location      = "North Europe"
 tags          = { enviornment = "demo", owner = "shan", purpose = "TFdemo" }
-storagename   = "azurermtfdemostorage"
+storagename   = "azurermtfdemoshan"
 containername = "tfdemocontainer"
 dnsname       = ["shan.com", "shan1.com", "shan2.com", "shan3.com"]
 networkrule = [
