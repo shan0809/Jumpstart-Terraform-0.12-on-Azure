@@ -1,19 +1,275 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# Terraform release pipeline
+variables:
+  # Directory of terraform files in repo
+  tf_directory: 'lecture7'
+  terraform_version: '0.14.7'
+  tflint_version: '0.25.0'
 
-trigger:
-- master
+  # Create this environment and set approval on it to the environment owners group
+  tf_approval_environment: 'TerraformApprovalEnv'
 
+  tf_init_command_options: '-input=false'
+  tf_validate_command_options: ''
+  tf_refresh_command_options: '-input=false -lock=false'
+  tf_plan_command_options: '-input=false -lock=false -refresh=false -out plan.out'
+  tf_apply_command_options: '-auto-approve -input=false -refresh=false'
+
+# Set the pool
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+# Automatically trigger pipeline when master branch updated (PR merged) in $(tf_directory) path
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - $(tf_directory)  
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+# Release instructions
+stages:
+- stage: Terraform_Plan
+  jobs:
+  - deployment: Terraform_Plan
+    displayName: Terraform_Plan
+    workspace:
+      clean: all
+    continueOnError: 'false'
+    environment: 'TerraformPlan_Environment'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: Bash@3
+              displayName: 'Install pre-reqs'
+              inputs:
+                targetType: 'inline'
+                workingDirectory: $(System.DefaultWorkingDirectory)/lecture7
+                failOnStderr: false
+                script: |
+                  sudo yum -y install git
+                  wget https://github.com/terraform-linters/tflint/releases/download/v$(tflint_version)/tflint_linux_amd64.zip
+                  unzip tflint_linux_amd64.zip
+                  sudo mv tflint /usr/local/bin
+
+                  wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
+                  unzip terraform_$(terraform_version)_linux_amd64.zip
+                  sudo mv terraform /usr/local/bin/
+
+            - task: Bash@3
+              displayName: 'Terraform Init'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform init -backend-config="access_key=$(STORAGEKEY)" $(tf_init_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'TFLint Validation'
+              inputs:
+                targetType: 'inline'
+                script: 'tflint --module'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Validation'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform validate $(tf_validate_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Refresh'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform refresh $(tf_refresh_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Plan'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform plan $(tf_plan_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              name: AutoApprovalTest
+              displayName: Auto-Approval Test
+              inputs:
+                targetType: 'inline'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+                script: |
+                  # If no changes, no-op and don't continue
+                  if terraform show plan.out | grep -q " 0 to add, 0 to change, 0 to destroy"; then 
+                    echo "##[section]No changes, terraform apply will not run";
+
+                  # Check if resources destroyed. If no, don't require approval
+                  elif terraform show plan.out | grep -q "to change, 0 to destroy"; then 
+                    echo "##[section]Approval not required";
+                    echo "##[section]Automatic terraform apply triggered";
+
+                    echo "##vso[task.setvariable variable=approvalRequired;isOutput=true]false"
+
+                  # Check if resources destroyed. If yes, require approvals
+                  else 
+                    echo "##[section]Terraform apply requires manual approval";
+                    
+                    echo "##vso[task.setvariable variable=approvalRequired;isOutput=true]true"
+                  fi
+
+            - task: DeleteFiles@1
+              displayName: 'Clean up working dir'
+              # Run directory cleanup always
+              condition: always()
+              inputs:
+                SourceFolder: '$(Agent.BuildDirectory)'
+                Contents: '*'
+
+- stage: Auto_Terraform
+  dependsOn: 
+    - Terraform_Plan # Explicitly set dependency graph
+  # Conditions
+  # 1. If TF Plan succeeded
+  # 2. If build reason isn't a pull request
+  # 3. If environment owner approval isn't required
+  condition: |
+    and
+      (
+        succeeded(),
+        ne(variables['Build.Reason'], 'PullRequest'),
+        eq(dependencies.Terraform_Plan.outputs['Terraform_Plan.Terraform_Plan.AutoApprovalTest.approvalRequired'], 'false')
+      )
+
+  jobs:
+  - deployment: Auto_Terraform
+    displayName: Auto Terraform
+    environment: 'TerraformAutoApprove_Environment'
+    workspace:
+      clean: all
+    continueOnError: 'false'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: Bash@3
+              displayName: 'Install pre-reqs'
+              inputs:
+                targetType: 'inline'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: false
+                script: |
+                  wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
+                  unzip terraform_$(terraform_version)_linux_amd64.zip
+                  sudo mv terraform /usr/local/bin/
+
+            - task: Bash@3
+              displayName: 'Terraform Init'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform init -backend-config="access_key=$(STORAGEKEY)" $(tf_init_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Refresh'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform refresh $(tf_refresh_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Apply'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform apply $(tf_apply_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: DeleteFiles@1
+              displayName: 'Clean up working dir'
+              # Run directory cleanup always
+              condition: always()
+              inputs:
+                SourceFolder: '$(Agent.BuildDirectory)'
+                Contents: '*'
+
+- stage: Approved_Terraform
+  dependsOn: Terraform_Plan # Explicitly set dependency graph
+  # Conditions
+  # 1. If TF Plan succeeded
+  # 2. If build reason isn't a pull request
+  # 3. If environment owner approval *is* required
+  condition: |
+    and
+      (
+        succeeded(),
+        ne(variables['Build.Reason'], 'PullRequest'),
+        eq(dependencies.Terraform_Plan.outputs['Terraform_Plan.Terraform_Plan.AutoApprovalTest.approvalRequired'], 'true')
+      )
+
+  jobs:
+  - deployment: Approved_Terraform
+    displayName: Approved Terraform
+    workspace:
+      clean: all
+    continueOnError: 'false'
+    environment: dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+
+            - task: Bash@3
+              displayName: 'Install pre-reqs'
+              inputs:
+                targetType: 'inline'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: false
+                script: |
+                  wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
+                  unzip terraform_$(terraform_version)_linux_amd64.zip
+                  sudo mv terraform /usr/local/bin/
+
+            - task: Bash@3
+              displayName: 'Terraform Init'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform init -backend-config="access_key=$(STORAGEKEY)" $(tf_init_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Refresh'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform refresh $(tf_refresh_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: Bash@3
+              displayName: 'Terraform Apply'
+              inputs:
+                targetType: 'inline'
+                script: 'terraform apply $(tf_apply_command_options)'
+                workingDirectory: $(System.DefaultWorkingDirectory)/$(tf_directory)
+                failOnStderr: true
+
+            - task: DeleteFiles@1
+              displayName: 'Clean up working dir'
+              # Run directory cleanup always
+              condition: always()
+              inputs:
+                SourceFolder: '$(Agent.BuildDirectory)'
+                Contents: '*'
