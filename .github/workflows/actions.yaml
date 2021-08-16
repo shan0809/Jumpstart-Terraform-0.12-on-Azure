@@ -1,7 +1,7 @@
 name: 'Terraform GitHub Actions'
 defaults:
   run:
-    working-directory: ../lecture7
+    working-directory: "../lecture7"
 on:
   - pull_request
   - push
