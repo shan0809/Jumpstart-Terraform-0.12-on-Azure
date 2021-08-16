@@ -24,7 +24,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan 
+        run: terraform plan -var "client_id=$ARM_CLIENT_ID" -var "client_secret=$ARM_CLIENT_SECRET" -var "subscription_id=ARM_SUBSCRIPTION_ID" -var "client_secret=ARM_CLIENT_SECRET"
         continue-on-error: true    
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} ${{ secrets.subscription_id }} ${{ secrets.client_id }} ${{ secrets.client_secret }} ${{ secrets.tenant_id }}
