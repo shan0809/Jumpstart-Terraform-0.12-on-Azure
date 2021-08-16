@@ -3,6 +3,16 @@ provider "azurerm" {
   features {}
 }
 
+provider "azurerm" {
+  version = ">=1.40.0"
+  subscription_id = $subscription_id
+  client_id       = $client_id
+  client_secret   = $client_secret
+  tenant_id       = $tenant_id
+  features {}
+}
+
+
 resource "azurerm_resource_group" "resourcegroup" {
   name     = var.resourcename
   location = var.location
@@ -82,7 +92,7 @@ variable "diagnostic" {
   default = ""
 }
 resource "azurerm_storage_account" "bootdiagnistic" {
-  name                     = var.diagnostic
+  name                     = "bootdisk982"
   resource_group_name      = azurerm_resource_group.resourcegroup.name
   location                 = azurerm_resource_group.resourcegroup.location
   account_tier             = trim(var.account_type, "_GRS")

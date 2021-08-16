@@ -20,9 +20,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color
+        run: terraform validate 
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color
+        run: terraform plan 
         continue-on-error: true    
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} ${{ secrets.subscription_id }} ${{ secrets.client_id }} ${{ secrets.client_secret }} ${{ secrets.tenant_id }}
