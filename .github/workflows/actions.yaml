@@ -34,4 +34,8 @@ jobs:
         run: terraform plan 
         continue-on-error: true    
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TF_VAR_client_id: ${{ secrets.TF_VAR_client_id }} 
+          TF_VAR_client_secret: ${{ secrets.TF_VAR_client_secret }} 
+          TF_VAR_subscription_id: ${{ secrets.TF_VAR_subscription_id }}
+          TF_VAR_tenant_id: ${{ secrets.TF_VAR_tenant_id }} 
