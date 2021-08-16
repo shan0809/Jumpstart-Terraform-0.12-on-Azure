@@ -1,7 +1,7 @@
-provider "azurerm" {
-  version = ">=1.40.0"
-  features {}
-}
+# provider "azurerm" {
+#   version = ">=1.40.0"
+#   features {}
+# }
 
 provider "azurerm" {
   version = ">=1.40.0"
