@@ -36,4 +36,10 @@ jobs:
         continue-on-error: true    
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Terraform APPLY
+        id: Apply
+        run: terraform apply -auto-approve 
+        continue-on-error: true    
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
           
