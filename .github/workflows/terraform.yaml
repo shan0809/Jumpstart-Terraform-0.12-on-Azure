@@ -1,4 +1,4 @@
-name: 'Terraform GitHub Actions'
+ name: 'Terraform GitHub Actions'
  defaults:
    run:
      working-directory: "lecture7"
