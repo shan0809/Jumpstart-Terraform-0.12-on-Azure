@@ -1,0 +1,24 @@
+- name: 'Terraform Github Actions'
+- default:
+    run:
+      working-directory: "lecture7"  
+  on: 
+    - pull_request
+    - push
+  jobs:
+    terraform:
+      name: 'Terraform'
+      runs-on: ubuntu-latest
+
+
+    steps:
+      - uses: action/checkout@master
+      - name: 'Terraform Init'
+        id: init
+        run: terraform init
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}   
+
+      - name: 'Terraform Validate'
+        id: validate
+        run: terraform validate      
