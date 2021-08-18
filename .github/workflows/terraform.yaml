@@ -1,5 +1,5 @@
-name: 'Terraform GitHub Actions'
-defaults:
+ name: 'Terraform GitHub Actions'
+ defaults:
    run:
      working-directory: "lecture7"
  on:
@@ -9,6 +9,7 @@ defaults:
    terraform:
      name: 'Terraform'
      runs-on: ubuntu-latest
+
 
      steps:
        - uses: actions/checkout@master
