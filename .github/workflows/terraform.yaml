@@ -1,4 +1,4 @@
- name: 'Terraform GitHub Actions'
+name: 'Terraform GitHub Actions'
  defaults:
    run:
      working-directory: "lecture7"
@@ -10,17 +10,18 @@
      name: 'Terraform'
      runs-on: ubuntu-latest
 
+
      env:
-      TF_VAR_client_id: ${{ secrets.TF_VAR_client_id}}
-      TF_VAR_client_secret: ${{ secrets.TF_VAR_client_id}}
-      TF_VAR_subscription_id: ${{ secrets.TF_VAR_client_id}}
-      TF_VAR_tentant_id: ${{ secrets.TF_VAR_client_id}}
-
-
+       TF_VAR_client_id: ${{ secrets.TF_VAR_client_id }} 
+       TF_VAR_client_secret: ${{ secrets.TF_VAR_client_secret }} 
+       TF_VAR_subscription_id: ${{ secrets.TF_VAR_subscription_id }}
+       TF_VAR_tenant_id: ${{ secrets.TF_VAR_tenant_id }} 
 
      steps:
+       # - name: 'Checkout'
        - uses: actions/checkout@master
        - name: 'Terraform Init'
+         # uses: hashicorp/terraform-github-actions@master
          id: init
          run: terraform init
          env:
@@ -28,13 +29,16 @@
        - name: Terraform Validate
          id: validate
          run: terraform validate 
-       - name: 'Terraform plan'
-         id: init
-         run: terraform plan
+
+       - name: Terraform Plan
+         id: plan
+         run: terraform plan 
+         continue-on-error: true    
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-       - name: 'Terraform Apply'
-         id: init
-         run: terraform apply -auto-approve
+       - name: Terraform APPLY
+         id: Apply
+         run: terraform apply -auto-approve 
+         continue-on-error: true    
          env:
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
